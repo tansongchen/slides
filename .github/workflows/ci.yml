@@ -14,7 +14,7 @@ jobs:
       - run: mkdir public/2019
       - uses: docker://pandoc/core:2.10
         with:
-          args: public/2019/index.html --slide-level 2 -t revealjs -V revealjs-url:..
+          args: 2019.md -s -o public/2019/index.html --slide-level 2 -t revealjs -V revealjs-url:..
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
