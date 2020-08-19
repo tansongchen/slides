@@ -10,11 +10,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - run: mkdir reveal/2019
-      - uses: docker://pandoc/core:2.9.2.1
+      - run: mkdir public
+      - run: mkdir public/2019
+      - uses: docker://pandoc/core:2.10
         with:
-          args: -s 2019.md -o reveal/2019/index.html --slide-level 2 -t revealjs
+          args: public/2019/index.html --slide-level 2 -t revealjs -V revealjs-url:..
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: reveal
