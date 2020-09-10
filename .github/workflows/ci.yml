@@ -10,11 +10,21 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - run: mkdir public
-      - run: mkdir public/2019
+      - run: |
+        mkdir public
+        mkdir public/2019
+        mkdir public/2020
+        cp *.jpg public/2020/
+        cp *.png public/2020/
+        cp -r reveal/dist public/
+        cp -r reveal/plugin public/
+        cp custom.css public/
       - uses: docker://pandoc/core:2.10
         with:
           args: 2019.md -s -o public/2019/index.html --slide-level 2 -t revealjs -V revealjs-url:..
+      - uses: docker://pandoc/core:2.10
+        with:
+          args: 2020.md -s -o public/2020/index.html --slide-level 2 -t revealjs -V revealjs-url:..
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
