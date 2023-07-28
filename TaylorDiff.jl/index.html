@@ -1,135 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TaylorDiff.jl: Taking Higher-order Derivatives Seriously</title>
+    <link rel="stylesheet" href="../reveal.js/dist/reveal.css" />
+    <link rel="stylesheet" href="../reveal.js/dist/theme/academic.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/xcode.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.0/dist/chart.umd.min.js"></script>
+    <script type="module">
+      import Reveal from "../reveal.js/dist/reveal.esm.js";
+      import Markdown from "../reveal.js/plugin/markdown/markdown.esm.js";
+      import Math from "../reveal.js/plugin/math/math.esm.js";
+      import Highlight from "../reveal.js/plugin/highlight/highlight.esm.js";
+      Reveal.initialize({
+        plugins: [Markdown, Math.KaTeX, Highlight],
+        width: 1920,
+        height: 1080,
+        center: false,
+        margin: 0,
+        display: "flex",
+        transition: "none",
+        slideNumber: true,
+        hash: true,
+      });
+    </script>
+    <script type="module">
+      Chart.defaults.aspectRatio = 1.5;
+      Chart.defaults.font.size = 24;
+      Chart.defaults.plugins.title.display = true;
+      Chart.defaults.plugins.title.font.size = 36;
+      const data = await (
+        await fetch(
+          "https://benchmark-data.tansongchen.workers.dev/TaylorDiff.jl"
+        )
+      ).json();
+      const { config, context, suite } =
+        data["TaylorDiff.jl#8c38fda4edf544e05ba4d97e9ddd5ced22d24a2f"];
+      const { scalar, mlp, taylor_expansion, pinn } = suite.data;
+      const { forwarddiff: scalar_f, taylordiff: scalar_t } = scalar.data;
+      const { forwarddiff: mlp_f, taylordiff: mlp_t } = mlp.data;
+      const { taylordiff: te_t, taylorseries: te_s } = taylor_expansion.data;
+      const { taylordiff: pinn_t, finitediff: pinn_f } = pinn.data;
+      new Chart(document.getElementById("p1"), {
+        type: "line",
+        data: {
+          labels: Object.keys(scalar_f.data),
+          datasets: [
+            {
+              data: Object.values(scalar_f.data).map((x) => x.time),
+              label: "ForwardDiff.jl",
+            },
+            {
+              data: Object.values(scalar_t.data).map((x) => x.time),
+              label: "TaylorDiff.jl",
+            },
+          ],
+        },
+        options: {
+          scales: {
+            x: { title: { text: "Differentiation Order", display: true } },
+            y: {
+              title: { text: "Time / ns", display: true },
+              type: "logarithmic",
+            },
+          },
+          plugins: {
+            title: { text: "Scalar function derivatives", display: true },
+          },
+        },
+      });
+      new Chart(document.getElementById("p2"), {
+        type: "line",
+        data: {
+          labels: Object.keys(mlp_f.data),
+          datasets: [
+            {
+              data: Object.values(mlp_f.data).map((x) => x.time),
+              label: "ForwardDiff.jl",
+            },
+            {
+              data: Object.values(mlp_t.data).map((x) => x.time),
+              label: "TaylorDiff.jl",
+            },
+          ],
+        },
+        options: {
+          scales: {
+            x: { title: { text: "Differentiation Order", display: true } },
+            y: {
+              title: { text: "Time / ns", display: true },
+              type: "logarithmic",
+            },
+          },
+          plugins: {
+            title: {
+              text: "Multi-layer Perceptron derivatives",
+              display: true,
+            },
+          },
+        },
+      });
+      new Chart(document.getElementById("p3"), {
+        type: "bar",
+        data: {
+          labels: ["Time"],
+          datasets: [
+            {
+              data: [te_s].map((x) => x.time / 1000),
+              label: "TaylorSeries.jl",
+            },
+            {
+              data: [te_t].map((x) => x.time / 1000),
+              label: "TaylorDiff.jl",
+            },
+          ],
+        },
+        options: {
+          scales: {
+            y: {
+              title: { text: "Time / μs", display: true },
+            },
+          },
+          plugins: {
+            title: { text: "Single variable Taylor expansion", display: true },
+          },
+        },
+      });
+      new Chart(document.getElementById("p4"), {
+        type: "bar",
+        data: {
+          labels: Object.keys(pinn_f.data),
+          datasets: [
+            {
+              data: Object.values(pinn_f.data).map((x) => x.time / 1000),
+              label: "FiniteDifferences.jl",
+            },
+            {
+              data: Object.values(pinn_t.data).map((x) => x.time / 1000),
+              label: "TaylorDiff.jl",
+            },
+          ],
+        },
+        options: {
+          scales: {
+            y: {
+              title: { text: "Time / μs", display: true },
+              // type: 'logarithmic',
+            },
+          },
+          plugins: { title: { text: "PINN", display: true } },
+        },
+      });
+    </script>
+  </head>
 
-<head>
-  <meta charset="utf-8" />
-  <title>TaylorDiff.jl: Taking Higher-order Derivatives Seriously</title>
-  <link rel="stylesheet" href="../reveal.js/dist/reveal.css" />
-  <link rel="stylesheet" href="../reveal.js/dist/theme/academic.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/xcode.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.0/dist/chart.umd.min.js"></script>
-  <script type="module">
-    import Reveal from "../reveal.js/dist/reveal.esm.js";
-    import Markdown from "../reveal.js/plugin/markdown/markdown.esm.js";
-    import Math from "../reveal.js/plugin/math/math.esm.js";
-    import Highlight from "../reveal.js/plugin/highlight/highlight.esm.js"
-    Reveal.initialize({
-      plugins: [Markdown, Math.KaTeX, Highlight],
-      width: 1920,
-      height: 1080,
-      center: false,
-      margin: 0,
-      display: "flex",
-      transition: 'none',
-      slideNumber: true,
-      hash: true,
-    });
-  </script>
-  <script type="module">
-
-    Chart.defaults.aspectRatio = 1.5;
-    Chart.defaults.font.size = 24;
-    Chart.defaults.plugins.title.display = true;
-    Chart.defaults.plugins.title.font.size = 36;
-    const data = await (await fetch('https://benchmark.tansongchen.com/TaylorDiff.jl', { method: 'POST', body: JSON.stringify({}) })).json();
-    const { tag, branch, benchmarkgroup } = data['TaylorDiff.jl#8c38fda4edf544e05ba4d97e9ddd5ced22d24a2f'];
-    const {
-      scalar: { forwarddiff: scalar_f, taylordiff: scalar_t },
-      mlp: { forwarddiff: mlp_f, taylordiff: mlp_t },
-      taylor_expansion: { taylordiff: te_t, taylorseries: te_s },
-      pinn: { taylordiff: pinn_t, finitediff: pinn_f }
-    } = benchmarkgroup;
-    new Chart(document.getElementById('p1'), {
-      type: 'line',
-      data: {
-        labels: Object.keys(scalar_f),
-        datasets: [
-          { data: Object.values(scalar_f).map(x => x.time), label: "ForwardDiff.jl" },
-          { data: Object.values(scalar_t).map(x => x.time), label: "TaylorDiff.jl" }
-        ]
-      },
-      options: {
-        scales: {
-          x: { title: { text: "Differentiation Order", display: true } },
-          y: {
-            title: { text: "Time / ns", display: true },
-            type: 'logarithmic'
-          }
-        },
-        plugins: { title: { text: "Scalar function derivatives", display: true } }
-      }
-    });
-    new Chart(document.getElementById('p2'), {
-      type: 'line',
-      data: {
-        labels: Object.keys(mlp_f),
-        datasets: [
-          { data: Object.values(mlp_f).map(x => x.time), label: "ForwardDiff.jl" },
-          { data: Object.values(mlp_t).map(x => x.time), label: "TaylorDiff.jl" }
-        ]
-      },
-      options: {
-        scales: {
-          x: { title: { text: "Differentiation Order", display: true } },
-          y: {
-            title: { text: "Time / ns", display: true },
-            type: 'logarithmic'
-          }
-        },
-        plugins: { title: { text: "Multi-layer Perceptron derivatives", display: true } }
-      }
-    });
-    new Chart(document.getElementById('p3'), {
-      type: 'bar',
-      data: {
-        labels: ['Time'],
-        datasets: [
-          { data: [te_s].map(x => x.time / 1000), label: "TaylorSeries.jl" },
-          { data: [te_t].map(x => x.time / 1000), label: "TaylorDiff.jl" },
-        ],
-      },
-      options: {
-        scales: {
-          y: {
-            title: { text: "Time / μs", display: true },
-          }
-        },
-        plugins: { title: { text: "Single variable Taylor expansion", display: true } }
-      }
-    });
-    new Chart(document.getElementById('p4'), {
-      type: 'bar',
-      data: {
-        labels: Object.keys(pinn_f),
-        datasets: [
-          { data: Object.values(pinn_f).map(x => x.time / 1000), label: "FiniteDifferences.jl" },
-          { data: Object.values(pinn_t).map(x => x.time / 1000), label: "TaylorDiff.jl" },
-        ],
-      },
-      options: {
-        scales: {
-          y: {
-            title: { text: "Time / μs", display: true },
-            // type: 'logarithmic',
-          }
-        },
-        plugins: { title: { text: "PINN", display: true } }
-      }
-    })
-  </script>
-</head>
-
-<body class="reveal">
-  <main class="slides">
-    <section class="hero">
-      <h1>TaylorDiff.jl: Taking Higher-order Derivatives Seriously</h1>
-      <p>Songchen Tan, Feb 2023</p>
-    </section>
-    <section class="hero">
-      <h1>Introduction</h1>
-    </section>
-    <section data-markdown>
-      <textarea data-template>
+  <body class="reveal">
+    <main class="slides">
+      <section class="hero">
+        <h1>TaylorDiff.jl: Taking Higher-order Derivatives Seriously</h1>
+        <p>Songchen Tan</p>
+      </section>
+      <section class="hero">
+        <h1>Introduction</h1>
+      </section>
+      <section data-markdown>
+        <textarea data-template>
 ## Understanding higher-order AD
 
 First-order AD is all about finding an efficient and maintainable way for executing the **chain rule formula**
@@ -189,13 +227,14 @@ Let's combine the best part of them:
 - Smarter fallbacks than generic Faa di Bruno's formula
     - By lifting ChainRules's `frule` to higher-order
 - Composable with other ADs
-      </textarea>
-    </section>
-    <section class="hero">
-      <h1>Theory</h1>
-    </section>
-    <section data-markdown>
-      <textarea data-template>
+      </textarea
+        >
+      </section>
+      <section class="hero">
+        <h1>Theory</h1>
+      </section>
+      <section data-markdown>
+        <textarea data-template>
 ## Order as a type parameter
 
 A Taylor polynomial is a order `N` polynomial represented by a wrapper over `NTuple{N + 1, P}` for arbitrary primal type `P`.
@@ -259,14 +298,20 @@ $$
 u_0\to u_1\to\cdots\to u_{n-1}\to (f_0,\cdots,f_n)
 $$
 
-      </textarea>
-    </section>
-    <section class="hero">
-      <h1>Implementation</h1>
-      <p>Checkout the code at <a href="https://github.com/tansongchen/TaylorDiff.jl" target="_blank">TaylorDiff.jl</a>!</p>
-    </section>
-    <section data-markdown>
-      <textarea data-template>
+      </textarea
+        >
+      </section>
+      <section class="hero">
+        <h1>Implementation</h1>
+        <p>
+          Checkout the code at
+          <a href="https://github.com/tansongchen/TaylorDiff.jl" target="_blank"
+            >TaylorDiff.jl</a
+          >!
+        </p>
+      </section>
+      <section data-markdown>
+        <textarea data-template>
 ## Type definition and primitives
 
 We define a new data structure `TaylorScalar` as described (it doesn't `<: Number` for technical reasons);
@@ -336,42 +381,46 @@ function rrule(::typeof(*), A::AbstractMatrix,
     return A * t, gemv_pullback
 end
 ```
-      </textarea>
-    </section>
-    <section class="hero">
-      <h1>Results</h1>
-    </section>
-    <section>
-      <h2>Scenario 1: Scaling comparison</h2>
-      <p>
-        We compare the efficiency of TaylorDiff.jl to ForwardDiff.jl (nesting first-order derivative), with scalar function $f(x)=\sin(x)$  up to order 10 and a simple MLP $f(x)=W_2\cdot\exp.(W_1\cdot x+b_1)+b_2$ up to order 7:
-      </p>
-      <div style="display: flex">
-        <div style="width: 1200px; margin: 0 auto" class="chart-container">
-          <canvas id="p1"></canvas>
+      </textarea
+        >
+      </section>
+      <section class="hero">
+        <h1>Results</h1>
+      </section>
+      <section>
+        <h2>Scenario 1: Scaling comparison</h2>
+        <p>
+          We compare the efficiency of TaylorDiff.jl to ForwardDiff.jl (nesting
+          first-order derivative), with scalar function $f(x)=\sin(x)$ up to
+          order 10 and a simple MLP $f(x)=W_2\cdot\exp.(W_1\cdot x+b_1)+b_2$ up
+          to order 7:
+        </p>
+        <div style="display: flex">
+          <div style="width: 1200px; margin: 0 auto" class="chart-container">
+            <canvas id="p1"></canvas>
+          </div>
+          <div style="width: 1200px; margin: 0 auto" class="chart-container">
+            <canvas id="p2"></canvas>
+          </div>
         </div>
+      </section>
+      <section>
+        <h2>Scenario 2: Taylor expansion</h2>
         <div style="width: 1200px; margin: 0 auto" class="chart-container">
-          <canvas id="p2"></canvas>
+          <canvas id="p3"></canvas>
         </div>
-      </div>
-    </section>
-    <section>
-      <h2>Scenario 2: Taylor expansion</h2>
-      <div style="width: 1200px; margin: 0 auto" class="chart-container">
-        <canvas id="p3"></canvas>
-      </div>
-    </section>
-    <section>
-      <h2>Scenario 3: Physical model and optimizations</h2>
-      <div style="width: 1200px; margin: 0 auto" class="chart-container">
-        <canvas id="p4"></canvas>
-      </div>
-    </section>
-    <section class="hero">
-      <h1>Conclusion</h1>
-    </section>
-    <section data-markdown>
-      <textarea data-template>
+      </section>
+      <section>
+        <h2>Scenario 3: Physical model and optimizations</h2>
+        <div style="width: 1200px; margin: 0 auto" class="chart-container">
+          <canvas id="p4"></canvas>
+        </div>
+      </section>
+      <section class="hero">
+        <h1>Conclusion</h1>
+      </section>
+      <section data-markdown>
+        <textarea data-template>
 ## Summary
 - Taylor mode for linear scaling
 - Generating Taylor rules from `frule`s
@@ -382,9 +431,9 @@ end
 - Make Zygote happy with the generated higher-order rules
 - OO has limitations. Go SCT or join Diffractor?
 
-      </textarea>
-    </section>
-  </main>
-</body>
-
+    </textarea
+        >
+      </section>
+    </main>
+  </body>
 </html>
